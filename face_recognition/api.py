@@ -135,7 +135,7 @@ def batch_face_locations(images, number_of_times_to_upsample=1, batch_size=128):
     If you are using a GPU, this can give you much faster results since the GPU
     can process batches of images at once. If you aren't using a GPU, you don't need this function.
 
-    :param img: A list of images (each as a numpy array)
+    :param images: A list of images (each as a numpy array)
     :param number_of_times_to_upsample: How many times to upsample the image looking for faces. Higher numbers find smaller faces.
     :param batch_size: How many images to include in each GPU processing batch.
     :return: A list of tuples of found face locations in css (top, right, bottom, left) order
@@ -176,17 +176,27 @@ def face_landmarks(face_image, face_locations=None, model="large"):
 
     # For a definition of each point index, see https://cdn-images-1.medium.com/max/1600/1*AbEg31EgkbXSQehuNJBlWg.png
     if model == 'large':
-        return [{
-            "chin": points[0:17],
-            "left_eyebrow": points[17:22],
-            "right_eyebrow": points[22:27],
-            "nose_bridge": points[27:31],
-            "nose_tip": points[31:36],
-            "left_eye": points[36:42],
-            "right_eye": points[42:48],
-            "top_lip": points[48:55] + [points[64]] + [points[63]] + [points[62]] + [points[61]] + [points[60]],
-            "bottom_lip": points[54:60] + [points[48]] + [points[60]] + [points[67]] + [points[66]] + [points[65]] + [points[64]]
-        } for points in landmarks_as_tuples]
+        results = []
+        for points in landmarks_as_tuples:
+            if len(points) < 68:  # Check if there are enough points for lips
+                top_lip_points = []
+                bottom_lip_points = []
+            else:
+                top_lip_points = points[48:55] + [points[64]] + [points[63]] + [points[62]] + [points[61]] + [points[60]]
+                bottom_lip_points = points[54:60] + [points[48]] + [points[60]] + [points[67]] + [points[66]] + [points[65]] + [points[64]]
+
+            results.append({
+                "chin": points[0:17],
+                "left_eyebrow": points[17:22],
+                "right_eyebrow": points[22:27],
+                "nose_bridge": points[27:31],
+                "nose_tip": points[31:36],
+                "left_eye": points[36:42],
+                "right_eye": points[42:48],
+                "top_lip": top_lip_points,
+                "bottom_lip": bottom_lip_points
+            })
+        return results
     elif model == 'small':
         return [{
             "nose_tip": [points[4]],
